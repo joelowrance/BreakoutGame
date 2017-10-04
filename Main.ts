@@ -61,8 +61,16 @@ class Game {
             this.dx = -this.dx;
         }
 
-        if (this.y + this.dy > this.canvas.height -this.ballRadius|| this.y + this.dy < this.ballRadius){
+        if (this.y + this.dy < this.ballRadius){
             this.dy = -this.dy;
+        } else if (this.y + this.dy > this.canvas.height -this.ballRadius){
+            if (this.x > this.paddleX && this.x < this.paddleX + this.paddleWidth){
+                this.dy = -this.dy;
+            }
+            else {
+                alert("GAME OVER") //TODO write in text on screen, read any key to reset
+                document.location.reload() //TODO this should be passed in.
+            }
         }
 
         console.log(this.leftPressed, this.rightPressed);

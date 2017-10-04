@@ -1,0 +1,4 @@
+** Convert to classes instead of just a big blob of code
+Make ball cycle through colors
+Add row of tiles to bottom of screen
+Write game over in text on canvas instead of an alert
