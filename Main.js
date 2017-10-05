@@ -12,11 +12,25 @@ var Game = (function () {
         this.paddleX = 0;
         this.rightPressed = false;
         this.leftPressed = false;
+        this.brickRowCount = 3;
+        this.brickColumnCount = 5;
+        this.brickWidth = 75;
+        this.brickHeigh = 20;
+        this.brickPadding = 10;
+        this.brickOffsetTop = 30;
+        this.brickOffsetLeft = 30;
+        this.bricks = []; //Array of what?
         this.canvas = canvas;
         this.ctx = this.canvas.getContext("2d");
         this.x = canvas.width / 2;
         this.y = canvas.height - 30;
         this.paddleX = (canvas.width - this.paddleWidth) / 2;
+        for (var c = 0; c < this.brickColumnCount; c++) {
+            this.bricks[c] = [];
+            for (var r = 0; r < this.brickRowCount; r++) {
+                this.bricks[c][r] = { x: 0, y: 0 };
+            }
+        }
         setInterval(this.draw.bind(this), 10);
         document.addEventListener("keydown", this.keyDownHandler.bind(this), false);
         document.addEventListener("keyup", this.keyUpHandler.bind(this), false);
@@ -41,6 +55,7 @@ var Game = (function () {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawBall();
         this.drawPaddle();
+        this.drawBricks();
         //Ball
         this.x += this.dx;
         this.y += this.dy;
@@ -55,8 +70,9 @@ var Game = (function () {
                 this.dy = -this.dy;
             }
             else {
-                alert("GAME OVER"); //TODO write in text on screen, read any key to reset
-                document.location.reload(); //TODO this should be passed in.
+                this.dy = -this.dy;
+                //alert("GAME OVER") //TODO write in text on screen, read any key to reset
+                //document.location.reload() //TODO this should be passed in.
             }
         }
         console.log(this.leftPressed, this.rightPressed);
@@ -68,6 +84,21 @@ var Game = (function () {
         if (this.rightPressed) {
             console.log("right");
             this.paddleX += 7;
+        }
+    };
+    Game.prototype.drawBricks = function () {
+        for (var c = 0; c < this.brickColumnCount; c++) {
+            for (var r = 0; r < this.brickRowCount; r++) {
+                var brickX = (c * (this.brickWidth + this.brickPadding)) + this.brickOffsetLeft;
+                var brickY = (r * (this.brickHeigh + this.brickPadding)) + this.brickOffsetTop;
+                this.bricks[c][r].x = brickX;
+                this.bricks[c][r].y = brickY;
+                this.ctx.beginPath();
+                this.ctx.rect(brickX, brickY, this.brickWidth, this.brickHeigh);
+                this.ctx.fillStyle = "#0095DD";
+                this.ctx.fill();
+                this.ctx.closePath();
+            }
         }
     };
     Game.prototype.drawPaddle = function () {

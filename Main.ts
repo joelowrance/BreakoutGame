@@ -15,7 +15,14 @@ class Game {
     paddleX: number = 0;
     rightPressed: boolean = false;
     leftPressed: boolean = false;
-
+    brickRowCount: number = 3;
+    brickColumnCount: number = 5;
+    brickWidth: number = 75;
+    brickHeigh: number = 20;
+    brickPadding: number = 10;
+    brickOffsetTop: number = 30;
+    brickOffsetLeft: number = 30;
+    bricks = []; //Array of what?
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas as HTMLCanvasElement;
@@ -23,6 +30,15 @@ class Game {
         this.x = canvas.width /2;
         this.y = canvas.height -30;
         this.paddleX = (canvas.width - this.paddleWidth) /2;
+
+
+        for(var c: number = 0; c < this.brickColumnCount; c++){
+            this.bricks[c] = [];
+            for(var r: number = 0; r < this.brickRowCount; r++){
+                this.bricks[c][r] = {x: 0, y: 0};
+            }
+        }
+
 
         setInterval(this.draw.bind(this), 10);
         document.addEventListener("keydown", this.keyDownHandler.bind(this), false);
@@ -52,6 +68,7 @@ class Game {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawBall();
         this.drawPaddle();
+        this.drawBricks();
 
         //Ball
         this.x += this.dx;
@@ -68,8 +85,9 @@ class Game {
                 this.dy = -this.dy;
             }
             else {
-                alert("GAME OVER") //TODO write in text on screen, read any key to reset
-                document.location.reload() //TODO this should be passed in.
+                this.dy = -this.dy;
+                //alert("GAME OVER") //TODO write in text on screen, read any key to reset
+                //document.location.reload() //TODO this should be passed in.
             }
         }
 
@@ -87,6 +105,22 @@ class Game {
 
         }
 
+    }
+
+    drawBricks() : void {
+        for(let c: number = 0; c < this.brickColumnCount; c++){
+            for(let r: number = 0; r < this.brickRowCount; r++){
+                let brickX = (c*(this.brickWidth+this.brickPadding)) + this.brickOffsetLeft;
+                let brickY = (r*(this.brickHeigh + this.brickPadding)) + this.brickOffsetTop;
+                this.bricks[c][r].x = brickX;
+                this.bricks[c][r].y = brickY;
+                this.ctx.beginPath()
+                this.ctx.rect(brickX, brickY, this.brickWidth, this.brickHeigh);
+                this.ctx.fillStyle = "#0095DD";
+                this.ctx.fill();
+                this.ctx.closePath();
+            }
+        }
     }
 
     drawPaddle() : void {
