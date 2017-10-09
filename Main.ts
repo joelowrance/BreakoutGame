@@ -18,7 +18,6 @@ class Ball extends GameObject {
     directionX: number = 2;
     directionY: number = -2;
 
-
     move(paddle: Paddle): void {
         let canvas = this.ctx.canvas;
         this.x += this.directionX;
@@ -72,67 +71,104 @@ class Paddle extends GameObject{
     }
 
     moveLeft(): void {
-        this.x -= this.movement;
-        //wall collision?
-        if (this.x < 0){
-            this.x = 0;
+        if (this.x > 0){
+            this.x -= this.movement;
         }
     }
 
     moveRight(): void {
-        this.x += this.movement;
-
-        //wall collision?
-        if (this.x + this.width > this.canvas.width){
-            this.x = this.canvas.width - this.width;
+        if (this.x < this.canvas.width - this.width){
+            this.x += this.movement;
         }
     }
 }
 
+class Brick extends GameObject{
+    width: number = 75;
+    height: number = 20;
+    status: number = 1;
+
+    constructor(x: number, y: number, ctx: CanvasRenderingContext2D){
+        super(x, y, ctx);
+    }
+
+    draw(): void {
+        this.ctx.beginPath();
+        this.ctx.rect(this.x, this.y, this.width, this.height);
+        this.ctx.fillStyle = "#0095DD";
+        this.ctx.fill();
+        this.ctx.closePath();
+    }
+}
+
+class BrickCollection {
+    public bricks: Brick[][];
+    public columns: number = 5;
+    public rows: number = 5;
+    private brickWidth: number = 75;
+    private brickHeight: number = 20;
+    private brickPadding: number = 10;
+    private brickOffsetTop: number = 30;
+    private brickOffsetLeft: number = 30;
 
 
+    constructor(private ctx: CanvasRenderingContext2D) {
+        this.bricks = [];
+        for(let c: number=0; c<this.columns; c++){
+            this.bricks[c] = [];
+            for(let r:number=0; r<this.rows; r++){
+                this.bricks[c][r] = new Brick(0, 0, this.ctx);
+            }
+        }
+    }
+
+    draw() :void {
+        for(let c: number = 0; c < this.columns; c++){
+            for(let r: number = 0; r < this.rows; r++){
+                let theBrick = (this.bricks[c][r] as Brick)
+                if(theBrick.status == 1){
+                    let brickX = (c*(this.brickWidth +this.brickPadding)) + this.brickOffsetLeft;
+                    let brickY = (r*(this.brickHeight + this.brickPadding)) + this.brickOffsetTop;
+                    theBrick.x = brickX;
+                    theBrick.y = brickY;
+                    theBrick.draw();
+                }
+            }
+        }
+    }
+
+    collisionCheck(ball: Ball) : void {
+        for (let c: number = 0; c < this.columns; c++) {
+            for (let r: number = 0; r < this.rows; r++) {
+                let brick = (this.bricks[c][r] as Brick);
+                //look at ball's x and y
+                if (brick.status == 1){
+                    if (ball.x > brick.x && ball.x < brick.x + this.brickWidth
+                        && ball.y > brick.y && ball.y < brick.y + this.brickHeight){
+                        ball.directionY = -ball.directionY;
+                        brick.status = 0;
+                    }
+                }
+            }
+        }
+    }
+}
 
 class Game {
     canvas: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
-    //x: number; //over
-    //y: number; //down
-    //dx: number = 2;
-    //dy: number = -2;
-    //ballRadius: number= 10;
-    //paddleHeight: number = 10;
-    //paddleWidth: number = 75;
-    paddleX: number = 0;
     rightPressed: boolean = false;
     leftPressed: boolean = false;
-    brickRowCount: number = 3;
-    brickColumnCount: number = 5;
-    brickWidth: number = 75;
-    brickHeigh: number = 20;
-    brickPadding: number = 10;
-    brickOffsetTop: number = 30;
-    brickOffsetLeft: number = 30;
-    bricks = []; //Array of what?
     paddle: Paddle;
     ball: Ball;
+    brickCol: BrickCollection;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas as HTMLCanvasElement;
         this.ctx = this.canvas.getContext("2d");
-        //this.x = canvas.width /2;
-        //this.y = canvas.height -30;
-        //this.paddleX = (canvas.width - this.paddleWidth) /2;
         this.paddle = new Paddle(0, 0, this.ctx);
         this.ball = new Ball(canvas.width / 2, canvas.height -30, this.ctx);
-
-
-        for(let c: number = 0; c < this.brickColumnCount; c++){
-            this.bricks[c] = [];
-            for(let r: number = 0; r < this.brickRowCount; r++){
-                this.bricks[c][r] = {x: 0, y: 0, status: 1};
-            }
-        }
-
+        this.brickCol = new BrickCollection(this.ctx);
 
         setInterval(this.draw.bind(this), 10);
         document.addEventListener("keydown", this.keyDownHandler.bind(this), false);
@@ -160,126 +196,22 @@ class Game {
         }
     }
 
-    collisionDetection() : void {
-        for (let c: number = 0; c < this.brickColumnCount; c++) {
-            for (let r: number = 0; r < this.brickRowCount; r++) {
-                let b = this.bricks[c][r];
-                //look at ball's x and y
-                //if (b.status == 1){
-                //    if (this.x > b.x && this.x < b.x + this.brickWidth && this.y > b.y && this.y < b.y + this.brickHeigh) {
-                //       console.log(this.x, b.x);
-                //        this.dy = -this.dy;
-                //        b.status = 0;
-                //    }
-                //}
-            }
-        }
-    }
-
     draw(): void {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        //this.drawBall();
         this.ball.draw();
         this.paddle.draw();
-        this.collisionDetection();
-        this.drawBricks();
-
+        this.brickCol.collisionCheck(this.ball);
+        //this.collisionDetection();
+        this.brickCol.draw();
         this.ball.move(this.paddle);
-
-        //Ball
-        // this.x += this.dx;
-        // this.y += this.dy;
-        //
-        // if (this.x + this.dx > this.canvas.width - this.ballRadius || this.x + this.dx < this.ballRadius){
-        //     this.dx = -this.dx;
-        // }
-        //
-        // if (this.y + this.dy < this.ballRadius){
-        //     this.dy = -this.dy;
-        // } else if (this.y + this.dy > this.canvas.height -this.ballRadius){
-        //     if (this.x > this.paddleX && this.x < this.paddleX + this.paddle.width){
-        //         this.dy = -this.dy;
-        //     }
-        //     else {
-        //         this.dy = -this.dy;
-        //         //alert("GAME OVER") //TODO write in text on screen, read any key to reset
-        //         //document.location.reload() //TODO this should be passed in.
-        //     }
-        // }
 
         //Paddle
         if (this.leftPressed) {
-            //this.paddle.moveLeft();
-            //console.log("left");
-            this.paddle.x -= 7;
+            this.paddle.moveLeft();
         }
 
         if (this.rightPressed) {
-            //this.paddle.moveRight();
-            //console.log("right");
-            this.paddle.x += 7;
-
+           this.paddle.moveRight();
         }
     }
-
-
-    drawBricks() : void {
-        for(let c: number = 0; c < this.brickColumnCount; c++){
-            for(let r: number = 0; r < this.brickRowCount; r++){
-                if(this.bricks[c][r].status == 1){
-                    let brickX = (c*(this.brickWidth+this.brickPadding)) + this.brickOffsetLeft;
-                    let brickY = (r*(this.brickHeigh + this.brickPadding)) + this.brickOffsetTop;
-                    this.bricks[c][r].x = brickX;
-                    this.bricks[c][r].y = brickY;
-                    this.ctx.beginPath();
-                    this.ctx.rect(brickX, brickY, this.brickWidth, this.brickHeigh);
-                    this.ctx.fillStyle = "#0095DD";
-                    this.ctx.fill();
-                    this.ctx.closePath();
-                }
-            }
-        }
-    }
-
-    /*drawPaddle() : void {
-        this.ctx.beginPath();
-        this.ctx.rect(this.paddleX, this.canvas.height-this.paddleHeight, this.paddleWidth, this.paddleHeight);
-        this.ctx.fillStyle = "#0095DD";
-        this.ctx.fill();
-        this.ctx.closePath();
-    }*/
-
-    // drawBall() : void {
-    //     this.ctx.beginPath();
-    //     this.ctx.arc(this.x, this.y, this.ballRadius, 0, Math.PI * 2);
-    //     this.ctx.fillStyle = "#009fDD";
-    //     this.ctx.fill();
-    //     this.ctx.closePath()
-    // }
-
 }
-
-
-/*
-var canvas = document.getElementById("myCanvas");
-var ctx = canvas.getContext("2d");
-var x = canvas.width / 2;
-var y = canvas.height-30;
-var dx = 2;
-var dy = -2;
-
-
-function drawBall() {
-    ctx.beginPath();
-    ctx.arc(x, y, 10, 0, Math.PI * 2);
-    ctx.fillStyle = "#009fDD";
-    ctx.fill();
-    ctx.closePath()
-}
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawBall();
-    x += dx;
-    y += dy;
-}
-setInterval(draw, 10);*/

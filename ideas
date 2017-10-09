@@ -2,3 +2,6 @@
 Make ball cycle through colors
 Add row of tiles to bottom of screen
 Write game over in text on canvas instead of an alert
+make ball bounce off paddle in different direction based on where it is hit
+after clearing all tiles, paddle gets a little smaller and the ball gets a little faster
+
