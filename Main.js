@@ -20,20 +20,38 @@ var GameObject = (function () {
     }
     return GameObject;
 }());
+var Score = (function (_super) {
+    __extends(Score, _super);
+    function Score() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.score = 0;
+        return _this;
+    }
+    Score.prototype.draw = function () {
+        this.ctx.font = "16px Arial";
+        this.ctx.fillStyle = "#0095DD";
+        this.ctx.fillText("Score: " + this.score, 8, 20);
+    };
+    Score.prototype.increment = function () {
+        this.score++;
+    };
+    return Score;
+}(GameObject));
 var Ball = (function (_super) {
     __extends(Ball, _super);
     function Ball() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.ballRadius = 10;
-        _this.speed = 1;
-        _this.directionX = 2;
-        _this.directionY = -2;
+        _this.speed = 5;
+        _this.directionX = 5;
+        _this.directionY = -5;
         return _this;
     }
     Ball.prototype.move = function (paddle) {
         var canvas = this.ctx.canvas;
         this.x += this.directionX;
         this.y += this.directionY;
+        //todo: this should be in collision detection, not move
         if (this.x + this.directionX > canvas.width - this.ballRadius || this.x + this.directionX < this.ballRadius) {
             this.directionX = -this.directionX;
         }
@@ -42,14 +60,40 @@ var Ball = (function (_super) {
         }
         else if (this.y + this.directionY > canvas.height - this.ballRadius) {
             if (this.x > paddle.x && this.x < paddle.x + paddle.width) {
-                this.directionY = -this.directionY;
+                this.paddleCollision(paddle);
             }
             else {
-                this.directionY = -this.directionY;
+                this.directionY = 0; // -this.directionY;
+                this.directionX = 0;
                 //alert("GAME OVER") //TODO write in text on screen, read any key to reset
                 //document.location.reload() //TODO this should be passed in.
             }
         }
+    };
+    Ball.prototype.paddleCollision = function (paddle) {
+        var relativeIntersectX = this.x - paddle.x;
+        //let angle =0
+        if (relativeIntersectX < (paddle.width * .25)) {
+            this.directionX = -4;
+            //angle = 60;
+        }
+        else if (relativeIntersectX < (paddle.width * .45)) {
+            this.directionX = -2;
+            //angle = 45;
+        }
+        else if (relativeIntersectX > (paddle.width * .45) && relativeIntersectX < (paddle.width * .55)) {
+            this.directionX = 0;
+            //angle = 0;
+        }
+        else if (relativeIntersectX < (paddle.width * .75)) {
+            this.directionX = 2;
+            //angle = 90;
+        }
+        else {
+            this.directionX = 4;
+            //angle = 120;
+        }
+        this.directionY = -this.directionY;
     };
     Ball.prototype.draw = function () {
         this.ctx.beginPath();
@@ -65,7 +109,7 @@ var Paddle = (function (_super) {
     function Paddle(x, y, ctx) {
         var _this = _super.call(this, x, y, ctx) || this;
         _this.height = 10;
-        _this.width = 75;
+        _this.width = 100;
         _this.movement = 7;
         _this.canvas = ctx.canvas;
         _this.x = (_this.canvas.width - _this.width) / 2;
@@ -88,12 +132,15 @@ var Paddle = (function (_super) {
             this.x += this.movement;
         }
     };
+    Paddle.prototype.collisionCheck = function (ball) {
+    };
     return Paddle;
 }(GameObject));
 var Brick = (function (_super) {
     __extends(Brick, _super);
-    function Brick(x, y, ctx) {
+    function Brick(x, y, ctx, color) {
         var _this = _super.call(this, x, y, ctx) || this;
+        _this.color = color;
         _this.width = 75;
         _this.height = 20;
         _this.status = 1;
@@ -102,7 +149,7 @@ var Brick = (function (_super) {
     Brick.prototype.draw = function () {
         this.ctx.beginPath();
         this.ctx.rect(this.x, this.y, this.width, this.height);
-        this.ctx.fillStyle = "#0095DD";
+        this.ctx.fillStyle = this.color;
         this.ctx.fill();
         this.ctx.closePath();
     };
@@ -111,18 +158,27 @@ var Brick = (function (_super) {
 var BrickCollection = (function () {
     function BrickCollection(ctx) {
         this.ctx = ctx;
-        this.columns = 5;
-        this.rows = 5;
+        this.columns = 6;
+        this.rows = 6;
         this.brickWidth = 75;
         this.brickHeight = 20;
-        this.brickPadding = 10;
+        this.brickPadding = 5;
         this.brickOffsetTop = 30;
-        this.brickOffsetLeft = 30;
+        this.brickOffsetLeft = 3;
         this.bricks = [];
+        this.colors = [
+            "#9400D3",
+            "#4B0082",
+            "#0000FF",
+            "#00FF00",
+            "#FFFF00",
+            "#FF7F00",
+            "#FF0000"
+        ];
         for (var c = 0; c < this.columns; c++) {
             this.bricks[c] = [];
             for (var r = 0; r < this.rows; r++) {
-                this.bricks[c][r] = new Brick(0, 0, this.ctx);
+                this.bricks[c][r] = new Brick(0, 0, this.ctx, this.colors[r]);
             }
         }
     }
@@ -140,7 +196,7 @@ var BrickCollection = (function () {
             }
         }
     };
-    BrickCollection.prototype.collisionCheck = function (ball) {
+    BrickCollection.prototype.collisionCheck = function (ball, score) {
         for (var c = 0; c < this.columns; c++) {
             for (var r = 0; r < this.rows; r++) {
                 var brick = this.bricks[c][r];
@@ -150,6 +206,7 @@ var BrickCollection = (function () {
                         && ball.y > brick.y && ball.y < brick.y + this.brickHeight) {
                         ball.directionY = -ball.directionY;
                         brick.status = 0;
+                        score.increment();
                     }
                 }
             }
@@ -159,6 +216,7 @@ var BrickCollection = (function () {
 }());
 var Game = (function () {
     function Game(canvas) {
+        var _this = this;
         this.rightPressed = false;
         this.leftPressed = false;
         this.canvas = canvas;
@@ -166,12 +224,13 @@ var Game = (function () {
         this.paddle = new Paddle(0, 0, this.ctx);
         this.ball = new Ball(canvas.width / 2, canvas.height - 30, this.ctx);
         this.brickCol = new BrickCollection(this.ctx);
-        setInterval(this.draw.bind(this), 10);
-        document.addEventListener("keydown", this.keyDownHandler.bind(this), false);
-        document.addEventListener("keyup", this.keyUpHandler.bind(this), false);
-        canvas.addEventListener("mousemove", function (e) {
-            console.log(e.layerX, e.layerY);
-        });
+        this.score = new Score(0, 0, this.ctx);
+        document.addEventListener("keydown", function (e) { return _this.keyDownHandler(e); });
+        document.addEventListener("keyup", function (e) { return _this.keyUpHandler(e); });
+        canvas.addEventListener("click", function (e) {
+            console.log(this.ball.x, this.ball.x);
+        }.bind(this));
+        this.draw();
     }
     Game.prototype.keyDownHandler = function (e) {
         if (e.keyCode == 39) {
@@ -190,11 +249,12 @@ var Game = (function () {
         }
     };
     Game.prototype.draw = function () {
+        var _this = this;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.score.draw();
         this.ball.draw();
         this.paddle.draw();
-        this.brickCol.collisionCheck(this.ball);
-        //this.collisionDetection();
+        this.brickCol.collisionCheck(this.ball, this.score);
         this.brickCol.draw();
         this.ball.move(this.paddle);
         //Paddle
@@ -204,6 +264,7 @@ var Game = (function () {
         if (this.rightPressed) {
             this.paddle.moveRight();
         }
+        window.requestAnimationFrame(function () { return _this.draw(); });
     };
     return Game;
 }());
